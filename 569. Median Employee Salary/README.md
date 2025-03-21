@@ -2,9 +2,9 @@
 
 ## Problem Description
 
-The Employee table holds all employees. The table has three columns: Employee Id, Company Name, and Salary.
+The `Employee` table contains information about employees from various companies. The table has three columns: `Id`, `Company`, and `Salary`.
 
-Your task is to find the median salary for each company. Return the median salary for each company, rounded to the nearest integer.
+Your task is to determine the median salary for each company. For each company, return the median salary rounded to the nearest integer. The median salary is the middle salary when the list of salaries for a company is sorted. If there is an even number of salaries, the median is the average of the two middle values, rounded to the nearest integer.
 
 ### Tables:
 
@@ -12,38 +12,37 @@ Your task is to find the median salary for each company. Return the median salar
 
 | Id   | Company    | Salary |
 |------|------------|--------|
-| 1    | A          | 2341   |
-| 2    | A          | 341    |
-| 3    | A          | 15     |
-| 4    | A          | 15314  |
-| 5    | A          | 451    |
-| 6    | A          | 513    |
-| 7    | B          | 15     |
-| 8    | B          | 13     |
-| 9    | B          | 1154   |
-| 10   | B          | 1345   |
-| 11   | B          | 1221   |
-| 12   | B          | 234    |
-| 13   | C          | 2345   |
-| 14   | C          | 2645   |
-| 15   | C          | 2645   |
-| 16   | C          | 2652   |
-| 17   | C          | 65     |
+| 1    | X          | 7000   |
+| 2    | X          | 3200   |
+| 3    | X          | 1200   |
+| 4    | X          | 4500   |
+| 5    | X          | 1800   |
+| 6    | X          | 3500   |
+| 7    | Y          | 1000   |
+| 8    | Y          | 1200   |
+| 9    | Y          | 5400   |
+| 10   | Y          | 6400   |
+| 11   | Y          | 2500   |
+| 12   | Y          | 3200   |
+| 13   | Z          | 5000   |
+| 14   | Z          | 3700   |
+| 15   | Z          | 4200   |
+| 16   | Z          | 5600   |
+| 17   | Z          | 2800   |
 
 ### Expected Output:
 
 | Id   | Company    | Salary |
 |------|------------|--------|
-| 5    | A          | 451    |
-| 6    | A          | 513    |
-| 12   | B          | 234    |
-| 9    | B          | 1154   |
-| 14   | C          | 2645   |
+| 5    | X          | 1800   |
+| 6    | X          | 3500   |
+| 12   | Y          | 3200   |
+| 9    | Y          | 5400   |
+| 14   | Z          | 3700   |
 
 ### Problem Constraints:
-- The Employee table has at most 1000 rows.
-- The salary is an integer, and each employee has a unique ID.
-
+- The `Employee` table has at most 1000 rows.
+- The salary is an integer, and each employee has a unique `Id`.
 ---
 
 ## Solution Approach
