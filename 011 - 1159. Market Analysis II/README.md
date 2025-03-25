@@ -63,7 +63,7 @@ This approach uses window functions to rank orders based on their sale date for 
 ```sql
 WITH RankedOrders AS (SELECT u.user_id AS seller_id, order_id, order_date, 
                       ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY order_date) AS rk, item_brand, favorite_brand
-                      FROM Users u LEFT JOIN Orders o ON o.seller_id = u.user_id LEFT JOIN Items USING(item_id))
+                      FROM Users u LEFT JOIN Orders o ON u.user_id = o.seller_id LEFT JOIN Items USING(item_id))
 SELECT seller_id, CASE WHEN item_brand = favorite_brand THEN 'yes' ELSE 'no' END AS 2nd_item_fav_brand
 FROM RankedOrders WHERE order_id IS NULL OR rk = 2;
 ```
