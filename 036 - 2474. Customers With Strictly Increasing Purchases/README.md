@@ -74,6 +74,48 @@ HAVING COUNT(DISTINCT group_id) = 1;
 - Group by `customer_id` and check that **only one unique group_id** exists.
 - Customers with exactly one group_id have strictly increasing purchases and are included in the result.
 
+### Approach 2: Grouping with Lag Functions
+
+This method uses **window functions** (like `LAG()`) to compare the total purchases of each customer from one year to the next.
+
+#### SQL Query:
+```sql
+WITH AnnualPrices AS (
+    SELECT customer_id, YEAR(order_date) AS order_year, SUM(price) AS total_spent
+    FROM Orders
+    GROUP BY customer_id, order_year
+),
+SortedOrders AS (
+    SELECT *, 
+    LAG(order_year) OVER (PARTITION BY customer_id ORDER BY order_year) AS prev_year,
+    LAG(total_spent) OVER (PARTITION BY customer_id ORDER BY order_year) AS prev_spent
+    FROM AnnualPrices
+),
+GroupedOrders AS (
+    SELECT *, 
+    SUM(CASE 
+        WHEN prev_year IS NULL 
+        OR prev_year != order_year - 1 
+        OR prev_spent >= total_spent 
+        THEN 1 
+        ELSE 0 
+    END) OVER (PARTITION BY customer_id ORDER BY order_year) AS group_id
+    FROM SortedOrders
+)
+SELECT customer_id 
+FROM GroupedOrders 
+GROUP BY customer_id 
+HAVING COUNT(DISTINCT group_id) = 1;
+```
+
+#### Explanation:
+- **Step 1**: The query calculates the **total purchase amount per customer per year**.
+- **Step 2**: For each customer, the `LAG()` function is used to get the previous year's total purchase (`prev_spent`) and the previous year's year (`prev_year`).
+- **Step 3**: A new `group_id` is calculated based on the following conditions:
+  - If a customer did not make purchases in a previous year (i.e., a gap), or if the current year’s purchases are less than or equal to the previous year's, it marks a break.
+- **Step 4**: By partitioning the data by `customer_id` and ordering by `order_year`, we can track groups of years where purchases are strictly increasing.
+- **Step 5**: The final filter ensures that customers whose purchases are strictly increasing from year to year (i.e., they only belong to one group_id) are selected.
+
 ---
 
 ## Performance Analysis
@@ -83,11 +125,18 @@ HAVING COUNT(DISTINCT group_id) = 1;
 - **Time complexity**: `O(n log n)` due to the use of `GROUP BY`, sorting, and `DENSE_RANK()` operations.
 - **Space complexity**: `O(n)` for intermediate storage in the CTE and subqueries.
 
+### Method 2 (Grouping with Lag Functions):
+
+- **Time complexity**: `O(n log n)` because of the use of `LAG()` function and ordering operations, with additional time required for grouping.
+- **Space complexity**: `O(n)` due to window functions storing previous year's values and intermediate grouping data.
+
 ---
 
 ## Conclusion
 
 - **Method 1**: Efficient and concise. It cleverly uses dense ranking to avoid explicitly checking adjacent years and handles missing years automatically through rank misalignment.
+  
+- **Method 2**: Provides a more granular view using the `LAG()` function to track previous year purchases, which can help in more complex scenarios where specific historical comparisons matter. However, it requires additional handling for gaps in the year sequence.
 
 ### Final Conclusion:
-- The dense ranking approach is optimal for this problem. It offers both performance and correctness without needing to manually fill in gaps for years without purchases.
+- Both methods work efficiently for this problem, but **Method 1** (dense ranking) may be slightly more efficient in simpler cases due to fewer operations and a cleaner approach. **Method 2** may be more flexible if additional custom conditions are needed in future scenarios.
