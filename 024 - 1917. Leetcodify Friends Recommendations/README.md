@@ -84,7 +84,7 @@ NotFriends AS (
 SELECT user1_id AS user_id, user2_id AS recommended_id
 FROM NotFriends
 GROUP BY user1_id, user2_id, day
-HAVING COUNT(*) > 2
+HAVING COUNT(DISTINCT r.song_id) > 2
 ORDER BY user1_id, user2_id;
 ```
 
@@ -95,6 +95,32 @@ The idea behind this approach is to use CTEs to efficiently find recommended fri
 - **Step 4:** Group the results by user and recommended friend, counting the number of common songs, and return the pairs with at least three matches.
 
 ---
+
+### Approach 2:
+
+#### SQL Query:
+```sql
+WITH Recommmendations AS (
+  SELECT 
+    l1.user_id AS user_id, 
+    l2.user_id AS recommended_id
+  FROM Listens l1 
+  JOIN Listens l2 
+    ON l1.user_id < l2.user_id 
+    AND l1.song_id = l2.song_id 
+    AND l1.day = l2.day
+  LEFT JOIN Friendship f 
+    ON (f.user1_id = l1.user_id AND f.user2_id = l2.user_id)
+       OR (f.user1_id = l2.user_id AND f.user2_id = l1.user_id)
+  WHERE f.user1_id IS NULL
+  GROUP BY user_id, recommended_id, l1.day 
+  HAVING COUNT(DISTINCT l1.song_id) >= 3
+)
+
+SELECT * FROM Recommmendations
+UNION ALL
+SELECT recommended_id, user_id FROM Recommmendations;
+```
 
 ## Performance Analysis
 
