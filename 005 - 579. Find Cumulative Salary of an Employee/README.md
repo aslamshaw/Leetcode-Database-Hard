@@ -42,21 +42,33 @@ The results should be displayed in ascending order of `Id` and, within the same 
 
 ## Solution Approaches
 
-### Approach 1: Using `MAX()` to Identify the Latest Month and `ORDER BY Month ASC` for Calculating Windowed Cumulative Sum
+### Approach 1: 
 
-In this approach, we use the `MAX()` function to identify the most recent month for each employee. Then, we calculate the cumulative sum of the salary for the previous 3 months (excluding the most recent one) using a windowed sum.
+
 
 #### SQL Query:
 ```sql
-WITH EmployeeMaxMonth AS (SELECT *, MAX(Month) OVER (PARTITION BY Id) AS max_month FROM Employee)  
-SELECT Id, Month, SUM(Salary) OVER (PARTITION BY Id ORDER BY Month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS Salary  
-FROM EmployeeMaxMonth  WHERE Month != max_month  ORDER BY Id, Month DESC;
+WITH Months AS (
+    SELECT 1 AS month UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION
+    SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION
+    SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12),
+IdMonths AS (SELECT id, month FROM Months CROSS JOIN (SELECT DISTINCT id FROM Employee) s),
+FilteredEmployees AS (
+    SELECT * FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY id ORDER BY month DESC) AS rk FROM Employee) s
+    WHERE rk != 1),
+EmployeeLogs AS (
+    SELECT id, month, IFNULL(salary, 0) AS salary FROM IdMonths LEFT JOIN FilteredEmployees USING(id, month)),
+CumSal AS (
+    SELECT id, month,
+           SUM(salary) OVER (PARTITION BY id ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS salary
+    FROM EmployeeLogs)
+SELECT id, month, c.salary FROM CumSal c JOIN FilteredEmployees USING(id, month) ORDER BY id, month desc
 ```
 
 #### Explanation:
-- First, we identify the most recent month for each employee using the `MAX()` function and partition by `Id`.
-- Next, we calculate the cumulative sum of salaries using a window function. We use the `SUM()` function with a window of `2 PRECEDING AND CURRENT ROW` to get the sum over the last 3 months.
-- Finally, we exclude the most recent month by filtering out rows where the `Month` equals the most recent month.
+- 
+- 
+- 
 
 ### Approach 2: Using `DENSE_RANK()` to Exclude the Latest Month and `ORDER BY Month DESC` for Windowed Cumulative Sum
 
