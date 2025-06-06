@@ -77,23 +77,23 @@ In this approach, we use the `DENSE_RANK()` function to assign a ranking to the 
 #### SQL Query:
 ```sql
 SELECT Id, Month, 
-SUM(Salary) OVER (PARTITION BY Id ORDER BY Month DESC ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING) AS Salary
+SUM(Salary) OVER (PARTITION BY Id ORDER BY month RANGE 2 PRECEDING) AS Salary
 FROM (SELECT *, DENSE_RANK() OVER (PARTITION BY Id ORDER BY Month DESC) AS rk FROM Employee) s WHERE rk != 1;
 ```
 
 #### Explanation:
 - First, we use `DENSE_RANK()` to assign a rank to each row, ordered by `Month DESC`, for each employee.
 - We exclude the most recent month by filtering out the rows where the rank equals 1.
-- Then, we use a window function to calculate the cumulative salary over the previous 3 months, but we adjust the window to only include the relevant months.
+- Then, we use a window function to calculate the cumulative salary over the previous 3 months using RANGE 2 PRECEDING instead of ROWS BETEEN ... AND ..., thus adjusting the window to only include the relevant months.
 
 ---
 
 ## Performance Analysis
 
-### Method 1 (Using `MAX()`):
+### Method 1 (Using `UNION`):
 
-- **Time complexity**: O(n) where `n` is the number of rows in the `Employee` table, since we compute the maximum month for each employee and the windowed cumulative sum in one pass.
-- **Space complexity**: O(n), as we store the result of the `MAX()` function and the windowed sum in memory.
+- **Time complexity**: 
+- **Space complexity**: 
 
 ### Method 2 (Using `DENSE_RANK()`):
 
@@ -104,7 +104,7 @@ FROM (SELECT *, DENSE_RANK() OVER (PARTITION BY Id ORDER BY Month DESC) AS rk FR
 
 ## Conclusion
 
-- **Method 1**: This approach is more straightforward and uses `MAX()` to find the latest month and computes the cumulative sum using window functions. It is efficient in terms of time complexity and well-suited for this type of problem.
+- **Method 1**: 
 - **Method 2**: While this approach uses `DENSE_RANK()` to exclude the latest month, it has a slightly higher time complexity due to the sorting step. However, it still works efficiently in practice for smaller datasets.
 
 ### Final Conclusion:
