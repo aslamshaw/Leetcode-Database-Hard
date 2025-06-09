@@ -60,27 +60,26 @@ This approach involves finding the users who listened to the same songs on the s
 
 #### SQL Query:
 ```sql
-WITH Recommended AS (
-    SELECT l1.user_id AS user1_id, l2.user_id AS user2_id, l1.song_id, l1.day
-    FROM Listens l1
-    JOIN Listens l2 ON l1.day = l2.day 
-                   AND l1.song_id = l2.song_id 
-                   AND l1.user_id != l2.user_id
-),
-Friends AS (
-    SELECT r.user1_id, r.user2_id, r.song_id, r.day
-    FROM Recommended r
-    JOIN Friendship f ON r.user1_id = f.user1_id AND r.user2_id = f.user2_id
-)
-SELECT user1_id, user2_id  
-FROM Friends  
-GROUP BY user1_id, user2_id, day HAVING COUNT(*) > 2;
+SELECT DISTINCT user1_id, user2_id
+FROM (
+  SELECT l1.user_id AS user1_id, l2.user_id AS user2_id
+  FROM Listens l1 
+  JOIN Listens l2 ON l1.user_id < l2.user_id 
+                 AND l1.song_id = l2.song_id 
+                 AND l1.day = l2.day
+  JOIN Friendship f ON l1.user_id = f.user1_id 
+                   AND l2.user_id = f.user2_id
+  GROUP BY l1.user_id, l2.user_id, l1.day
+  HAVING COUNT(DISTINCT l1.song_id) > 2
+) s
+ORDER BY user1_id, user2_id;
 ```
 
 #### Explanation:
 - **Step 1:** Identify pairs of users who listened to the same song on the same day.
 - **Step 2:** Filter out pairs who are friends using the Friendship table.
 - **Step 3:** Group by user pairs and day to check if they listened to at least three songs together on the same day.
+- **Step 4:** We need to use DISTINCT in SELECT clause after the grouping because we might get pairs like (1, 2, 2021-03-15), (1, 2, 2021-03-15) as output and if we use DISTINCT here then nothing happens because they are already unique, thus we need to select the user ids first and then apply DISTINCT to get (1, 2) as unique pair.
 
 ---
 
