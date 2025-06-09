@@ -42,27 +42,32 @@ This approach prioritizes hiring seniors first to maximize the number of experie
 #### SQL Query:
 ```sql
 WITH Seniors AS (
-    SELECT *
-    FROM (SELECT *, SUM(salary) OVER (ORDER BY salary, employee_id) AS cs 
-          FROM Candidates WHERE experience = 'Senior') s
-    WHERE cs <= 70000),
+  SELECT *
+  FROM (
+    SELECT employee_id, experience, SUM(salary) OVER (ORDER BY salary, employee_id) AS cum_sal
+    FROM Candidates
+    WHERE experience = 'Senior') s
+  WHERE cum_sal <= 70000),
 
-RemainingBudget AS (SELECT 70000 - IFNULL(MAX(cs), 0) AS remaining_budget FROM Seniors),
+RemainingBudget AS (
+  SELECT 70000 - (SELECT IFNULL(MAX(cum_sal), 0) FROM Seniors) AS remaining_budget),
 
 Juniors AS (
-    SELECT * 
-    FROM (SELECT *, SUM(salary) OVER (ORDER BY salary, employee_id) AS cs 
-          FROM Candidates WHERE experience = 'Junior') j
-    WHERE cs <= (SELECT remaining_budget FROM RemainingBudget)),
+  SELECT *
+  FROM (
+    SELECT employee_id, experience, SUM(salary) OVER (ORDER BY salary, employee_id) AS cum_sal
+    FROM Candidates
+    WHERE experience = 'Junior') j
+  WHERE cum_sal <= (SELECT remaining_budget FROM RemainingBudget))
 
-TeamSize AS (
-    SELECT experience, COUNT(*) AS cnt
-    FROM (SELECT * FROM Seniors UNION ALL SELECT * FROM Juniors) sj
-    GROUP BY experience)
-
-SELECT experience, IFNULL(cnt, 0) AS accepted_candidates
-FROM (SELECT 'Senior' AS experience UNION SELECT 'Junior') sj1 
-LEFT JOIN (SELECT * FROM TeamSize) sj2 USING(experience);
+SELECT experience, COUNT(employee_id) AS accepted_candidates
+FROM (SELECT 'Senior' AS experience UNION SELECT 'Junior') sj1
+LEFT JOIN (
+  SELECT * FROM Seniors
+  UNION ALL
+  SELECT * FROM Juniors) sj2 
+USING (experience)
+GROUP BY experience;
 ```
 
 #### Explanation:
