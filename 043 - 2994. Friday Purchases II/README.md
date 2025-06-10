@@ -58,7 +58,7 @@ For example:
 
 ## Solution Approach
 
-### Approach 1: Generate Fridays with a Recursive CTE
+### Approach 1: Generate all the days with a Recursive CTE
 
 #### SQL Query:
 ```sql
@@ -75,7 +75,7 @@ FROM
   November 
   LEFT JOIN Purchases USING(purchase_date) 
 WHERE 
-  DAYOFWEEK(purchase_date) = 6 
+  DATE_FORMAT(purchase_date, '%Y-%m') = '2023-11' AND DAYOFWEEK(purchase_date) = 6 
 GROUP BY 
   purchase_date;
 ```
@@ -86,6 +86,26 @@ GROUP BY
 3. Perform a **LEFT JOIN** with the `Purchases` table on `purchase_date` so that Fridays with no purchases will still be present in the result.
 4. Group by `purchase_date` and calculate the `SUM(amount_spend)`, using `IFNULL` to convert null totals to `0`.
 5. Add a computed column `week_of_month` by using the formula `CEIL(DAY(purchase_date) / 7)`.
+
+### Approach 2: Generate Fridays with a Recursive CTE
+
+#### SQL Query:
+```sql
+WITH RECURSIVE November AS (
+    SELECT '2023-11-03' AS purchase_date
+    UNION ALL
+    SELECT purchase_date + INTERVAL 7 DAY
+    FROM November
+    WHERE purchase_date + INTERVAL 7 DAY <= '2023-11-24')
+
+SELECT 
+    CEIL(DAY(purchase_date)/7) AS week_of_month, 
+    purchase_date, 
+    IFNULL(SUM(amount_spend), 0) AS total_amount
+FROM November LEFT JOIN Purchases USING(purchase_date)
+WHERE DAYOFWEEK(purchase_date) = 6
+GROUP BY purchase_date ORDER BY week_of_month;
+```
 
 ---
 
