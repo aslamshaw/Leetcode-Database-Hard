@@ -45,23 +45,23 @@ This approach uses window functions to detect breaks in consecutive transaction 
 
 #### SQL Query:
 ```sql
-WITH SortedTransactions AS (
-    SELECT customer_id, transaction_date,
-        LAG(transaction_date) OVER (PARTITION BY customer_id ORDER BY transaction_date) AS prev_date
-    FROM Transactions),
-
-GroupedTransactions AS (
+WITH GroupedTransactions AS (
     SELECT *, 
-        SUM(CASE 
-                WHEN prev_date IS NULL OR DATEDIFF(transaction_date, prev_date) != 1 THEN 1 
-                ELSE 0 
-            END) OVER (ORDER BY customer_id, transaction_date) AS group_id
-    FROM SortedTransactions)
+           SUM(CASE WHEN prev_date IS NULL OR DATEDIFF(transaction_date, prev_date) > 1 THEN 1 
+           ELSE 0 END) 
+           OVER (PARTITION BY customer_id ORDER BY transaction_date) AS group_id
+    FROM (
+        SELECT *, 
+               LAG(transaction_date) OVER (PARTITION BY customer_id ORDER BY transaction_date) AS prev_date
+        FROM Transactions) s),
 
-SELECT customer_id
-FROM GroupedTransactions
-GROUP BY customer_id, group_id
-HAVING COUNT(*) > 2;
+RankedCount AS (
+    SELECT customer_id, 
+           DENSE_RANK() OVER (ORDER BY COUNT(*) DESC) AS rk
+    FROM GroupedTransactions 
+    GROUP BY customer_id, group_id)
+
+SELECT customer_id FROM RankedCount WHERE rk = 1 ORDER BY customer_id;
 ```
 
 #### Explanation:
