@@ -44,27 +44,25 @@ This approach ranks the sessions for each user and then filters for users whose 
 
 #### SQL Query:
 ```sql
-WITH RankedUsers AS (
-    SELECT *, 
-           DENSE_RANK() OVER (PARTITION BY user_id ORDER BY session_start) AS rk 
-    FROM Sessions),
-
-FirstViewer AS (
-    SELECT *, 
-           CASE WHEN session_type = 'Viewer' AND rk = 1 THEN 1 ELSE 0 END AS is_first_viewer
-    FROM RankedUsers)
-
-SELECT user_id, 
-       SUM(session_type = 'Streamer') AS sessions_count
-FROM FirstViewer
+WITH FirstViewers AS (
+    SELECT user_id
+    FROM (
+        SELECT *, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY session_start) AS rk
+        FROM Sessions
+    ) s 
+    WHERE rk = 1 AND session_type = 'Viewer'
+)
+SELECT user_id, SUM(session_type = 'Streamer') AS sessions_count
+FROM Sessions JOIN FirstViewers USING(user_id)
 GROUP BY user_id
-HAVING SUM(is_first_viewer) > 0;
+HAVING SUM(session_type = 'Streamer') > 0
+ORDER BY sessions_count, user_id DESC;
 ```
 
 #### Explanation:
-- **Step 1:** Use `DENSE_RANK()` to rank sessions for each user based on the session start time, ensuring that the first session for each user can be identified.
-- **Step 2:** For each user, mark their first session as a `'Viewer'` using a conditional flag (`is_first_viewer`).
-- **Step 3:** Count the number of `'Streamer'` sessions for users whose first session was a viewer. Only include users who have at least one `'Viewer'` session as their first.
+- **Step 1:** Use `ROW_NUMBER()` to rank sessions for each user based on the session start time, ensuring that the first session for each user can be identified.
+- **Step 2:** Pick `rk = 1` i.e. first session for each user and check if `session_type = 'Viewer'` i.e. whose first session is also as Viewer.
+- **Step 3:** Count the number of `'Streamer'` sessions for users whose first session was a viewer.
 - **Step 4:** Return the results, ordered by the number of streaming sessions and `user_id` in descending order.
 
 ---
@@ -73,8 +71,8 @@ HAVING SUM(is_first_viewer) > 0;
 
 ### Method 1 (Ranking and Filtering First Session as Viewer):
 
-- **Time complexity**: `O(n log n)` — Sorting is done as part of the `DENSE_RANK()` window function, which requires sorting the data by `session_start`.
-- **Space complexity**: `O(n)` — Temporary storage for the ranked sessions and the flagged `is_first_viewer` column.
+- **Time complexity**: `O(n log n)` — Sorting is done as part of the `ROW_NUMBER()` window function, which requires sorting the data by `session_start`.
+- **Space complexity**: `O(n)` — Temporary storage for the ranked sessions.
 
 ---
 
