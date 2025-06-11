@@ -92,7 +92,7 @@ ORDER BY team_name;
 #### Explanation:
 - **TeamPasses CTE**: First, we join the `Passes` table with the `Teams` table twice: once for the `pass_from` player and once for the `pass_to` player. We filter out only the passes where both players belong to the same team.
 - **GroupedPasses CTE**: We use the `ROW_NUMBER()` function to generate a unique identifier for each consecutive streak of passes. This is achieved by partitioning the rows by team and sorting by timestamp. The difference between the `ROW_NUMBER()` values gives us a unique `group_id` for each streak.
-- **Final SELECT**: We calculate the streak length by counting the number of consecutive passes per group. We then find the maximum streak for each team by using the `ROW_NUMBER()` function again and grouping by `team_name` to get the longest streak per team.
+- **Final SELECT**: We calculate the streak length by counting the number of consecutive passes per group. We then find the maximum streak for each team by using the `MAX()` function and grouping by `team_name` to get the longest streak per team.
 
 ---
 
