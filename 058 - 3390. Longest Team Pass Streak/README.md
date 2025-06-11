@@ -56,31 +56,37 @@ This approach utilizes SQL window functions to group the passes by consecutive s
 #### SQL Query:
 ```sql
 WITH TeamPasses AS (
-    SELECT t1.team_name AS t1, 
-           time_stamp, 
-           t2.team_name AS t2
+    SELECT 
+        t1.team_name AS team_from, 
+        p.time_stamp, 
+        t2.team_name AS team_to
     FROM Passes p 
     JOIN Teams t1 ON p.pass_from = t1.player_id 
-    JOIN Teams t2 ON p.pass_to = t2.player_id),
-    
+    JOIN Teams t2 ON p.pass_to = t2.player_id
+    WHERE t1.team_name = t2.team_name
+),
+
 GroupedPasses AS (
-    SELECT *, 
-           ROW_NUMBER() OVER (ORDER BY time_stamp) - 
-           ROW_NUMBER() OVER (PARTITION BY t2 ORDER BY time_stamp) AS group_id
-    FROM TeamPasses 
-    WHERE t1 = t2)
-    
-SELECT t1 AS team_name, 
-       MAX(streak) AS longest_streak
+    SELECT 
+        *, 
+        ROW_NUMBER() OVER (ORDER BY time_stamp) - 
+        ROW_NUMBER() OVER (PARTITION BY team_from ORDER BY time_stamp) AS group_id
+    FROM TeamPasses
+)
+
+SELECT 
+    team_name, 
+    MAX(streak) AS longest_streak
 FROM (
-    SELECT t1, 
-           COUNT(*) AS streak, 
-           ROW_NUMBER() OVER (PARTITION BY t1 ORDER BY COUNT(*) DESC) AS rk
+    SELECT 
+        team_from AS team_name, 
+        COUNT(*) AS streak
     FROM GroupedPasses 
-    GROUP BY t1, group_id) s 
-WHERE rk = 1
+    GROUP BY team_from, group_id
+) s
 GROUP BY team_name
 ORDER BY team_name;
+
 ```
 
 #### Explanation:
