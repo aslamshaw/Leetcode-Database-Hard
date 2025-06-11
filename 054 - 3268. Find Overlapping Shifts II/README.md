@@ -54,10 +54,10 @@ This solution combines two strategies:
 ```sql
 WITH TotalOverlapDuration AS (
     SELECT 
-        es1.employee_id, 
-        SUM(TIMESTAMPDIFF(MINUTE, es2.start_time, LEAST(es1.end_time, es2.end_time))) AS total_overlap_duration
+        es1.employee_id,
+        SUM(TIMESTAMPDIFF(MINUTE, es2.start_time, LEAST(es1.end_time, es2.end_time))) AS total
     FROM EmployeeShifts es1
-    JOIN EmployeeShifts es2 
+    JOIN EmployeeShifts es2
         ON es1.employee_id = es2.employee_id
         AND DATE(es1.start_time) = DATE(es2.start_time)
         AND es1.end_time > es2.start_time
@@ -70,20 +70,24 @@ ShiftEvents AS (
     SELECT employee_id, end_time AS event_time, -1 AS event_type FROM EmployeeShifts),
 
 ShiftOverlap AS (
-    SELECT employee_id, MAX(running_shifts) AS max_overlapping_shifts
+    SELECT 
+        employee_id, 
+        MAX(running_shifts) AS max_overlapping_shifts
     FROM (
-        SELECT *, 
-               SUM(event_type) OVER (PARTITION BY employee_id ORDER BY event_time, event_type) AS running_shifts 
-        FROM ShiftEvents) s 
+        SELECT 
+            employee_id,
+            event_time,
+            SUM(event_type) OVER (PARTITION BY employee_id ORDER BY event_time) AS running_shifts
+        FROM ShiftEvents) sub
     GROUP BY employee_id)
 
 SELECT 
-    employee_id, 
-    max_overlapping_shifts, 
-    IFNULL(total_overlap_duration, 0) AS total_overlap_duration
-FROM (SELECT DISTINCT employee_id FROM EmployeeShifts) id 
-LEFT JOIN ShiftOverlap so USING (employee_id)
-LEFT JOIN TotalOverlapDuration od USING (employee_id);
+    employee_id,
+    max_overlapping_shifts,
+    IFNULL(total, 0) AS total_overlap_duration
+FROM ShiftOverlap 
+LEFT JOIN TotalOverlapDuration USING(employee_id)
+ORDER BY employee_id;
 ```
 
 #### Explanation:
