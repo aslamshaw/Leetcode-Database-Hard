@@ -64,7 +64,10 @@ SELECT
     year,
     product_id,
     curr_year_spend,
-    prev_year_spend,
+    CASE 
+        WHEN year = prev_year + 1 THEN prev_year_spend
+        ELSE NULL
+    END AS prev_year_spend,
     CASE 
         WHEN year = prev_year + 1 THEN ROUND((curr_year_spend - prev_year_spend) * 100.0 / prev_year_spend, 2)
         ELSE NULL
